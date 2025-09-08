@@ -26,19 +26,38 @@ technical_agent = Agent(
    Assist users with troubleshooting, error messages, and how-to questions.""",
 )
 
-# Create a triage agent that can hand off to specialists
+# Simple retriever tool
+
+def retrieve_from_knowledge_base(query):
+    """Searches the knowledge_base.txt file for lines relevant to the query."""
+    kb_path = "knowledge_base.txt"
+    results = []
+    try:
+        with open(kb_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if any(word.lower() in line.lower() for word in query.split()):
+                    results.append(line.strip())
+    except Exception as e:
+        results.append(f"[Retriever error: {e}]")
+    if results:
+        return "\n".join(results)
+    else:
+        return "No relevant information found in the knowledge base."
+
+# Create a triage agent that can hand off to specialists and use the retriever
 triage_agent = Agent(
    name="Customer Service",
-   instructions="""You are the initial customer service contact who helps direct
-   customers to the right specialist.
-  
-   If the customer has billing or payment questions, hand off to the Billing Agent.
-   If the customer has technical problems or how-to questions, hand off to the Technical Agent.
-   For general inquiries or questions about products, you can answer directly.
-   
-   IMPORTANT: When you decide to hand off to another agent, explicitly state your reasoning
-   in your response like this: "HANDOFF REASON: [explain why you're handing off]"
-   """,
+   instructions="""You are the initial customer service contact who helps direct customers to the right specialist.
+
+If the customer has billing or payment questions, hand off to the Billing Agent.
+If the customer has technical problems or how-to questions, hand off to the Technical Agent.
+For general inquiries or questions about products, you can answer directly.
+
+If the customer asks about business hours, refund policy, upload limits, or other factual information, use the 'retrieve_from_knowledge_base' tool to fetch the answer from the knowledge base and cite it in your response.
+
+IMPORTANT: When you decide to hand off to another agent, explicitly state your reasoning in your response like this: "HANDOFF REASON: [explain why you're handing off]"
+""",
+   tools=[retrieve_from_knowledge_base],
    handoffs=[billing_agent, technical_agent],  # Direct handoff to specialist agents
 )
 
